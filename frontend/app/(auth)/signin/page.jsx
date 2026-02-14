@@ -26,15 +26,28 @@ export default function SigninPage() {
     defaultValues: { email: "", password: "" },
   });
 
-  const API=process.env.NEXT_PUBLIC_API_URL
-  async function onSubmit(values) {
-    await fetch(`${API}/api/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(values),
-    });
+  const API = process.env.NEXT_PUBLIC_API_URL;
 
-    router.push("/");
+  async function onSubmit(values) {
+    try {
+      const res = await fetch(`${API}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        console.error("Login failed:", data);
+        return;
+      }
+
+      localStorage.setItem("user", JSON.stringify(data.user));
+      router.push("/");
+    } catch (err) {
+      console.error("Network error:", err);
+    }
   }
 
   return (
@@ -43,6 +56,7 @@ export default function SigninPage() {
         <CardHeader>
           <CardTitle className="text-center text-2xl">Signin</CardTitle>
         </CardHeader>
+
         <CardContent>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <Input placeholder="Email" {...form.register("email")} />
@@ -53,6 +67,7 @@ export default function SigninPage() {
                 placeholder="Password"
                 {...form.register("password")}
               />
+
               <span
                 onClick={() => setShow(!show)}
                 className="absolute right-3 top-2 cursor-pointer"
