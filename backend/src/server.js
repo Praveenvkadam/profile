@@ -1,20 +1,33 @@
 const express = require('express');
-require('dotenv').config();
-
+const dotenv = require('dotenv');
+const cors = require('cors');
 const { initDB } = require('./config/db');
 const authRoutes = require('./routes/auth.routes');
 
+dotenv.config();
+
 const app = express();
+
+app.use(cors({
+  origin: process.env.FRONTEND_URL,
+  credentials: true
+}));
 
 app.use(express.json());
 app.use('/api/auth', authRoutes);
 
-const startServer = async () => {
-  await initDB();
+const PORT = process.env.PORT;
 
-  app.listen(process.env.PORT, () => {
-    console.log(`Server running on port ${process.env.PORT}`);
-  });
+const startServer = async () => {
+  try {
+    await initDB();
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error('Server failed to start:', error);
+    process.exit(1);
+  }
 };
 
 startServer();
