@@ -12,6 +12,13 @@ import {
   Mail, Download, ChevronRight, MoreVertical, Pencil,
   Plus, Award, GraduationCap, Sparkles, MapPin, Briefcase
 } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 const formatMonth = (val) => {
   if (!val) return ""
@@ -62,9 +69,28 @@ export default function ProfilePage() {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center space-y-3">
-          <p className="text-gray-500 text-sm">{error || "Profile not found"}</p>
-          <Button size="sm" onClick={() => router.push("/profile_form")}>Complete Your Profile</Button>
+          <p className="text-gray-500 text-sm">{error || "Unauthorized"}</p>
+          <Button size="sm" onClick={() => setShowSignInDialog(true)}>Complete Your Profile</Button>
         </div>
+
+        <Dialog open={showSignInDialog} onOpenChange={setShowSignInDialog}>
+          <DialogContent className="sm:max-w-md text-center">
+            <DialogHeader>
+              <DialogTitle className="text-center text-xl font-semibold italic">please signin</DialogTitle>
+              <DialogDescription className="text-center text-sm text-muted-foreground mt-2">
+                You need to be authenticated to complete your profile.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-center mt-4">
+              <Button
+                onClick={() => router.push("/signin")}
+                className="w-full bg-gray-900 hover:bg-gray-800 text-white"
+              >
+                Go to Sign In
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     )
   }

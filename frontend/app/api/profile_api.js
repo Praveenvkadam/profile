@@ -70,6 +70,7 @@ export async function updateProfile(formData) {
 
     payload.append("firstName", formData.firstName.trim());
     payload.append("lastName", formData.lastName.trim());
+    payload.append("email", formData.email.trim());
     payload.append("phone", (formData.phone || "").trim());
     payload.append("address", (formData.address || "").trim());
     payload.append("bio", (formData.bio || "").trim());
@@ -101,6 +102,7 @@ export async function updateProfile(formData) {
     ] : [];
     payload.append("education", JSON.stringify(education));
     console.log('Education data:', education);
+
     const certificates = (formData.certificates || [])
       .filter((c) => {
         return c.certificateName && c.certificateName.trim()
@@ -115,7 +117,6 @@ export async function updateProfile(formData) {
     payload.append("certificates", JSON.stringify(certificates));
     console.log('Certificates data:', certificates);
 
-    // Files - only append if they exist and are File objects
     if (formData.profilePhoto && formData.profilePhoto instanceof File) {
       console.log('Adding profile photo:', formData.profilePhoto.name);
       payload.append("profilePhoto", formData.profilePhoto);
@@ -138,6 +139,7 @@ export async function updateProfile(formData) {
         console.log(key, ':', value);
       }
     }
+
     const token = getAuthToken();
     console.log('Sending request to:', `${API}/api/profile`);
     
