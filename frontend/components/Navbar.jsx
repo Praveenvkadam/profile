@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Menu, ChevronDown } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Menu, ChevronDown, LogOut, User } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -28,120 +28,235 @@ import {
     AvatarFallback,
 } from "@/components/ui/avatar";
 
+// Constants
+const HIDE_NAVBAR_ROUTES = ["/signin", "/signup", "/forgot-password"];
+const NAV_LINKS = [
+    { href: "/", label: "Home" },
+    { href: "/dashboard", label: "Dashboard" },
+];
+
+// Utility function to get user initial
+const getUserInitial = (user) => {
+    if (!user) return "?";
+    const sources = [user.firstName, user.name, user.email];
+    for (const source of sources) {
+        if (source?.trim()) {
+            return source.charAt(0).toUpperCase();
+        }
+    }
+    return "?";
+};
+
+// Separate component for avatar to prevent re-renders
+const UserAvatar = ({ user, size = "h-9 w-9" }) => {
+    const initial = useMemo(() => getUserInitial(user), [user]);
+    
+    return (
+        <Avatar className={size}>
+            {user?.image?.trim() && (
+                <AvatarImage src={user.image} alt={user?.email ?? "User"} />
+            )}
+            <AvatarFallback className="bg-primary text-primary-foreground text-sm font-semibold">
+                {initial}
+            </AvatarFallback>
+        </Avatar>
+    );
+};
+
+// Separate component for navigation links
+const NavLinks = ({ links, className = "" }) => (
+    <div className={className}>
+        {links.map((link) => (
+            <Link 
+                key={link.href} 
+                href={link.href}
+                className="hover:text-primary transition-colors"
+            >
+                {link.label}
+            </Link>
+        ))}
+    </div>
+);
+
+// Separate component for user menu
+const UserMenu = ({ user, onLogout, align = "end" }) => (
+    <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+            <Button
+                variant="ghost"
+                className="flex items-center gap-2 pl-2 pr-0"
+                aria-label="User menu"
+            >
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                <UserAvatar user={user} />
+            </Button>
+        </DropdownMenuTrigger>
+
+        <DropdownMenuContent align={align} className="w-44">
+            <DropdownMenuItem asChild>
+                <Link href="/profile" className="flex items-center gap-2 cursor-pointer">
+                    <User className="h-4 w-4" />
+                    Profile
+                </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+                onClick={onLogout}
+                className="cursor-pointer flex items-center gap-2 text-red-600 focus:text-red-600"
+            >
+                <LogOut className="h-4 w-4" />
+                Logout
+            </DropdownMenuItem>
+        </DropdownMenuContent>
+    </DropdownMenu>
+);
+
 export default function Navbar() {
     const pathname = usePathname();
+    const router = useRouter();
     const [user, setUser] = useState(null);
-    const [mounted, setMounted] = useState(false);
+    const [isMounted, setIsMounted] = useState(false);
+    const [isSheetOpen, setIsSheetOpen] = useState(false);
 
-    useEffect(() => {
-        const storedUser = localStorage.getItem("user");
+    // Memoized check for hiding navbar
+    const shouldHideNavbar = useMemo(
+        () => HIDE_NAVBAR_ROUTES.includes(pathname),
+        [pathname]
+    );
 
-        if (storedUser) {
-            try {
-                setUser(JSON.parse(storedUser));
-            } catch {
+    // Load user from localStorage
+    const loadUser = useCallback(() => {
+        try {
+            const storedUser = localStorage.getItem("user");
+            
+            if (storedUser) {
+                const parsedUser = JSON.parse(storedUser);
+                setUser(parsedUser);
+            } else {
                 setUser(null);
             }
+        } catch (error) {
+            console.error("Failed to load user:", error);
+            setUser(null);
         }
-
-        setMounted(true);
     }, []);
 
+    // Handle logout
+    const handleLogout = useCallback(() => {
+        // Clear all auth data
+        localStorage.removeItem("user");
+        localStorage.removeItem("token");
+        
+        setUser(null);
+        setIsSheetOpen(false); // Close mobile menu if open
+        
+        router.push("/signin");
+    }, [router]);
 
-    if (!mounted) return null;
+    // Close sheet when navigating
+    useEffect(() => {
+        setIsSheetOpen(false);
+    }, [pathname]);
 
-  
-    const hideNavbarRoutes = ["/signin", "/signup", "/forgetpassword"];
-    if (hideNavbarRoutes.includes(pathname)) {
-        return null;
+    // Load user on mount and listen for changes
+    useEffect(() => {
+        setIsMounted(true);
+        loadUser();
+
+        // Listen for storage changes (cross-tab sync)
+        const handleStorageChange = (e) => {
+            if (e.key === "user" || e.key === "token") {
+                loadUser();
+            }
+        };
+
+        // Listen for custom user update events
+        const handleUserUpdate = () => {
+            loadUser();
+        };
+
+        window.addEventListener("storage", handleStorageChange);
+        window.addEventListener("userUpdated", handleUserUpdate);
+
+        return () => {
+            window.removeEventListener("storage", handleStorageChange);
+            window.removeEventListener("userUpdated", handleUserUpdate);
+        };
+    }, [loadUser]);
+
+    // Early return for hidden routes
+    if (shouldHideNavbar) return null;
+
+    // Loading state (prevents hydration mismatch)
+    if (!isMounted) {
+        return (
+            <nav className="fixed top-0 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
+                <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+                    <Link 
+                        href="/" 
+                        className="text-lg font-semibold tracking-tight hover:text-primary transition-colors"
+                    >
+                        MyApp
+                    </Link>
+                    <div className="h-9 w-9 rounded-full bg-muted animate-pulse" />
+                </div>
+            </nav>
+        );
     }
 
-    const emailInitial = user?.email
-        ? user.email.charAt(0).toUpperCase()
-        : "?";
-
-    const logout = () => {
-        localStorage.removeItem("user");
-        window.location.href = "/signin";
-    };
-
     return (
-        <nav className="fixed top-0 w-full border-b bg-background z-50">
+        <nav className="fixed top-0 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
             <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-                <Link href="/" className="text-lg font-semibold tracking-tight">
+                {/* Logo */}
+                <Link 
+                    href="/" 
+                    className="text-lg font-semibold tracking-tight hover:text-primary transition-colors"
+                >
                     MyApp
                 </Link>
 
-                {/* Desktop */}
+                {/* Desktop Navigation */}
                 <div className="hidden md:flex items-center gap-6">
-                    <Link href="/">Home</Link>
-                    <Link href="/dashboard">Dashboard</Link>
-
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button
-                                variant="ghost"
-                                className="flex items-center gap-2 pl-2 pr-0"
-                            >
-                                <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                                <Avatar className="h-9 w-9">
-                                    <AvatarImage src={user?.image || ""} alt="User" />
-                                    <AvatarFallback className="text-sm font-medium">
-                                        {emailInitial}
-                                    </AvatarFallback>
-                                </Avatar>
-                            </Button>
-                        </DropdownMenuTrigger>
-
-                        <DropdownMenuContent align="end" className="w-44">
-                            <DropdownMenuItem asChild>
-                                <Link href="/profile">Profile</Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                                onClick={logout}
-                                className="cursor-pointer"
-                            >
-                                Logout
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                    <NavLinks links={NAV_LINKS} className="flex items-center gap-6" />
+                    <UserMenu user={user} onLogout={handleLogout} />
                 </div>
 
-                {/* Mobile */}
+                {/* Mobile Navigation */}
                 <div className="md:hidden flex items-center gap-2">
+                    {/* Mobile User Menu */}
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button
                                 variant="ghost"
                                 className="relative h-9 w-9 rounded-full p-0"
+                                aria-label="User menu"
                             >
-                                <Avatar className="h-9 w-9">
-                                    <AvatarImage src={user?.image || ""} alt="User" />
-                                    <AvatarFallback className="text-sm font-medium">
-                                        {emailInitial}
-                                    </AvatarFallback>
-                                </Avatar>
+                                <UserAvatar user={user} />
                             </Button>
                         </DropdownMenuTrigger>
 
                         <DropdownMenuContent align="end" className="w-44">
                             <DropdownMenuItem asChild>
-                                <Link href="/profile">Profile</Link>
+                                <Link href="/profile" className="flex items-center gap-2 cursor-pointer">
+                                    <User className="h-4 w-4" />
+                                    Profile
+                                </Link>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
-                                onClick={logout}
-                                className="cursor-pointer"
+                                onClick={handleLogout}
+                                className="cursor-pointer flex items-center gap-2 text-red-600 focus:text-red-600"
                             >
+                                <LogOut className="h-4 w-4" />
                                 Logout
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
 
-                    <Sheet>
+                    {/* Mobile Menu Sheet */}
+                    <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                         <SheetTrigger asChild>
-                            <Button variant="ghost" size="icon">
+                            <Button variant="ghost" size="icon" aria-label="Open menu">
                                 <Menu className="h-5 w-5" />
                             </Button>
                         </SheetTrigger>
@@ -151,10 +266,18 @@ export default function Navbar() {
                                 <SheetTitle>Menu</SheetTitle>
                             </SheetHeader>
 
-                            <div className="flex flex-col gap-6 mt-6">
-                                <Link href="/">Home</Link>
-                                <Link href="/dashboard">Dashboard</Link>
-                            </div>
+                            <nav className="flex flex-col gap-4 mt-6">
+                                {NAV_LINKS.map((link) => (
+                                    <Link
+                                        key={link.href}
+                                        href={link.href}
+                                        className="text-lg hover:text-primary transition-colors"
+                                        onClick={() => setIsSheetOpen(false)}
+                                    >
+                                        {link.label}
+                                    </Link>
+                                ))}
+                            </nav>
                         </SheetContent>
                     </Sheet>
                 </div>

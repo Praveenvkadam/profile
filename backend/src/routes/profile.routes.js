@@ -21,6 +21,10 @@ const validate = (req, res, next) => {
   next();
 };
 
+// ✅ GET — fetch existing profile
+router.get("/", auth, profileController.getProfile);
+
+// ✅ PUT — update profile
 router.put(
   "/",
   auth,

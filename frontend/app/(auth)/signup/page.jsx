@@ -12,27 +12,38 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+// ✅ Import from the separate auth API file
+import { registerUser } from "../../api/auth_api";
+
 const schema = z.object({
-  email: z.string().min(1).email(),
-  password: z.string().min(6),
+  email: z.string().min(1, "Email is required").email("Invalid email"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
 export default function SignupPage() {
   const router = useRouter();
   const [show, setShow] = useState(false);
+  const [serverError, setServerError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm({
     resolver: zodResolver(schema),
     defaultValues: { email: "", password: "" },
   });
 
-  const API=process.env.NEXT_PUBLIC_API_URL
   async function onSubmit(values) {
-    await fetch(`${API}/api/auth/register`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(values),
-    });
+    setServerError("");
+    setIsLoading(true);
+
+    const { success, error } = await registerUser(values);
+
+    setIsLoading(false);
+
+    if (!success) {
+      // ✅ Show the actual error message instead of logging {}
+      setServerError(error || "Something went wrong. Please try again.");
+      return;
+    }
 
     router.push("/signin");
   }
@@ -45,31 +56,56 @@ export default function SignupPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <Input placeholder="Email" {...form.register("email")} />
-
-            <div className="relative">
-              <Input
-                type={show ? "text" : "password"}
-                placeholder="Password"
-                {...form.register("password")}
-              />
-              <span
-                onClick={() => setShow(!show)}
-                className="absolute right-3 top-2 cursor-pointer"
-              >
-                {show ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </span>
+            <div>
+              <Input placeholder="Email" {...form.register("email")} />
+              {/* ✅ Show Zod validation errors inline */}
+              {form.formState.errors.email && (
+                <p className="mt-1 text-xs text-red-500">
+                  {form.formState.errors.email.message}
+                </p>
+              )}
             </div>
 
-            <Button className="w-full">Signup</Button>
+            <div>
+              <div className="relative">
+                <Input
+                  type={show ? "text" : "password"}
+                  placeholder="Password"
+                  {...form.register("password")}
+                />
+                <span
+                  onClick={() => setShow(!show)}
+                  className="absolute right-3 top-2 cursor-pointer"
+                >
+                  {show ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </span>
+              </div>
+              {form.formState.errors.password && (
+                <p className="mt-1 text-xs text-red-500">
+                  {form.formState.errors.password.message}
+                </p>
+              )}
+            </div>
+
+            {/* ✅ Server-side error message (e.g. "Email already in use") */}
+            {serverError && (
+              <p className="text-center text-sm text-red-500">{serverError}</p>
+            )}
+
+            <Button className="w-full" disabled={isLoading}>
+              {isLoading ? "Signing up…" : "Signup"}
+            </Button>
           </form>
 
           <p className="mt-4 text-center text-sm">
-            <Link href="/signin">Signin</Link>
+            Already have an account?{" "}
+            <Link href="/signin" className="underline">
+              Signin
+            </Link>
           </p>
         </CardContent>
       </Card>

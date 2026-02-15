@@ -12,42 +12,59 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+import { loginUser } from "../../api/auth_api";
+
 const schema = z.object({
-  email: z.string().min(1).email(),
-  password: z.string().min(1),
+  email: z.string().min(1, "Email is required").email("Invalid email"),
+  password: z.string().min(1, "Password is required"),
 });
 
 export default function SigninPage() {
   const router = useRouter();
   const [show, setShow] = useState(false);
+  const [serverError, setServerError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm({
     resolver: zodResolver(schema),
     defaultValues: { email: "", password: "" },
   });
 
-  const API = process.env.NEXT_PUBLIC_API_URL;
-
   async function onSubmit(values) {
-    try {
-      const res = await fetch(`${API}/api/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
-      });
+    setServerError("");
+    setIsLoading(true);
 
-      const data = await res.json();
+    const { success, data, error } = await loginUser(values);
 
-      if (!res.ok) {
-        console.error("Login failed:", data);
-        return;
-      }
+    setIsLoading(false);
 
-      localStorage.setItem("user", JSON.stringify(data.user));
-      router.push("/");
-    } catch (err) {
-      console.error("Network error:", err);
+    if (!success) {
+      setServerError(error || "Something went wrong. Please try again.");
+      return;
     }
+
+    console.log('Login response data:', data);
+
+    // ✅ SAVE TOKEN - This was missing!
+    if (data?.token) {
+      localStorage.setItem("token", data.token);
+      console.log('Token saved to localStorage');
+    } else {
+      console.warn('No token in login response:', data);
+    }
+
+    // ✅ Handle both { user: { email } } and { email } response shapes.
+    // Always inject the typed email as a guaranteed fallback so the
+    // Navbar avatar initial never falls back to "?".
+    const userToStore = data?.user ?? data ?? {};
+    if (!userToStore.email) {
+      userToStore.email = values.email;
+    }
+
+    localStorage.setItem("user", JSON.stringify(userToStore));
+    console.log('User saved to localStorage');
+    
+    router.push("/");
   }
 
   return (
@@ -59,28 +76,47 @@ export default function SigninPage() {
 
         <CardContent>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <Input placeholder="Email" {...form.register("email")} />
-
-            <div className="relative">
-              <Input
-                type={show ? "text" : "password"}
-                placeholder="Password"
-                {...form.register("password")}
-              />
-
-              <span
-                onClick={() => setShow(!show)}
-                className="absolute right-3 top-2 cursor-pointer"
-              >
-                {show ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </span>
+            <div>
+              <Input placeholder="Email" {...form.register("email")} />
+              {form.formState.errors.email && (
+                <p className="mt-1 text-xs text-red-500">
+                  {form.formState.errors.email.message}
+                </p>
+              )}
             </div>
 
-            <Button className="w-full">Signin</Button>
+            <div>
+              <div className="relative">
+                <Input
+                  type={show ? "text" : "password"}
+                  placeholder="Password"
+                  {...form.register("password")}
+                />
+                <span
+                  onClick={() => setShow(!show)}
+                  className="absolute right-3 top-2 cursor-pointer"
+                >
+                  {show ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </span>
+              </div>
+              {form.formState.errors.password && (
+                <p className="mt-1 text-xs text-red-500">
+                  {form.formState.errors.password.message}
+                </p>
+              )}
+            </div>
+
+            {serverError && (
+              <p className="text-center text-sm text-red-500">{serverError}</p>
+            )}
+
+            <Button className="w-full" disabled={isLoading}>
+              {isLoading ? "Signing in…" : "Signin"}
+            </Button>
           </form>
 
           <div className="mt-4 flex justify-between text-sm">
