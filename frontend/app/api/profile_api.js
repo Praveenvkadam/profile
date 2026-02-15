@@ -84,7 +84,8 @@ export async function updateProfile(formData) {
       formData.educationLevel || 
       formData.university || 
       formData.courseName || 
-      formData.fieldOfStudy;
+      formData.fieldOfStudy ||
+      formData.experienceLevel;
 
     const education = hasEducation ? [
       {
@@ -109,6 +110,7 @@ export async function updateProfile(formData) {
         startDate: c.certificateStart || null,
         endDate: c.certificateEnd || null,
         description: (c.certificateDescription || "").trim() || null,
+        experienceLevel: formData.experienceLevel || null,
       }));
     payload.append("certificates", JSON.stringify(certificates));
     console.log('Certificates data:', certificates);
