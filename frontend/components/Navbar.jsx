@@ -28,17 +28,15 @@ import {
     AvatarFallback,
 } from "@/components/ui/avatar";
 
-// Constants
 const HIDE_NAVBAR_ROUTES = ["/signin", "/signup", "/forgot-password"];
 const NAV_LINKS = [
     { href: "/", label: "Home" },
     { href: "/dashboard", label: "Dashboard" },
 ];
 
-// Utility function to get user initial
 const getUserInitial = (user) => {
     if (!user) return "?";
-    const sources = [user.firstName, user.name, user.email];
+    const sources = [user.firstName, user.first_name, user.name, user.email];
     for (const source of sources) {
         if (source?.trim()) {
             return source.charAt(0).toUpperCase();
@@ -47,12 +45,14 @@ const getUserInitial = (user) => {
     return "?";
 };
 
-// Separate component for avatar to prevent re-renders
 const UserAvatar = ({ user, size = "h-9 w-9" }) => {
     const initial = useMemo(() => getUserInitial(user), [user]);
     
     return (
         <Avatar className={size}>
+            {user?.profile_photo?.trim() && (
+                <AvatarImage src={user.profile_photo} alt={user?.email ?? "User"} />
+            )}
             {user?.image?.trim() && (
                 <AvatarImage src={user.image} alt={user?.email ?? "User"} />
             )}
@@ -63,7 +63,6 @@ const UserAvatar = ({ user, size = "h-9 w-9" }) => {
     );
 };
 
-// Separate component for navigation links
 const NavLinks = ({ links, className = "" }) => (
     <div className={className}>
         {links.map((link) => (
@@ -78,7 +77,6 @@ const NavLinks = ({ links, className = "" }) => (
     </div>
 );
 
-// Separate component for user menu
 const UserMenu = ({ user, onLogout, align = "end" }) => (
     <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -118,13 +116,11 @@ export default function Navbar() {
     const [isMounted, setIsMounted] = useState(false);
     const [isSheetOpen, setIsSheetOpen] = useState(false);
 
-    // Memoized check for hiding navbar
     const shouldHideNavbar = useMemo(
         () => HIDE_NAVBAR_ROUTES.includes(pathname),
         [pathname]
     );
 
-    // Load user from localStorage
     const loadUser = useCallback(() => {
         try {
             const storedUser = localStorage.getItem("user");
@@ -141,39 +137,52 @@ export default function Navbar() {
         }
     }, []);
 
-    // Handle logout
     const handleLogout = useCallback(() => {
-        // Clear all auth data
         localStorage.removeItem("user");
         localStorage.removeItem("token");
         
         setUser(null);
-        setIsSheetOpen(false); // Close mobile menu if open
+        setIsSheetOpen(false);
         
         router.push("/signin");
     }, [router]);
 
-    // Close sheet when navigating
     useEffect(() => {
         setIsSheetOpen(false);
     }, [pathname]);
 
-    // Load user on mount and listen for changes
     useEffect(() => {
         setIsMounted(true);
         loadUser();
 
-        // Listen for storage changes (cross-tab sync)
         const handleStorageChange = (e) => {
             if (e.key === "user" || e.key === "token") {
                 loadUser();
             }
         };
 
-        // Listen for custom user update events
         const handleUserUpdate = () => {
             loadUser();
         };
+
+        const pollInterval = setInterval(() => {
+            try {
+                const currentUser = localStorage.getItem("user");
+                const currentUserObj = currentUser ? JSON.parse(currentUser) : null;
+                
+                setUser((prevUser) => {
+                    const prevUserStr = JSON.stringify(prevUser);
+                    const currentUserStr = JSON.stringify(currentUserObj);
+                    
+                    if (prevUserStr !== currentUserStr) {
+                        return currentUserObj;
+                    }
+                    return prevUser;
+                });
+            } catch (error) {
+                console.error("Polling error:", error);
+            }
+        }, 500);
 
         window.addEventListener("storage", handleStorageChange);
         window.addEventListener("userUpdated", handleUserUpdate);
@@ -181,13 +190,12 @@ export default function Navbar() {
         return () => {
             window.removeEventListener("storage", handleStorageChange);
             window.removeEventListener("userUpdated", handleUserUpdate);
+            clearInterval(pollInterval);
         };
     }, [loadUser]);
 
-    // Early return for hidden routes
     if (shouldHideNavbar) return null;
 
-    // Loading state (prevents hydration mismatch)
     if (!isMounted) {
         return (
             <nav className="fixed top-0 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
@@ -196,7 +204,7 @@ export default function Navbar() {
                         href="/" 
                         className="text-lg font-semibold tracking-tight hover:text-primary transition-colors"
                     >
-                        MyApp
+                        Gidy
                     </Link>
                     <div className="h-9 w-9 rounded-full bg-muted animate-pulse" />
                 </div>
@@ -207,23 +215,20 @@ export default function Navbar() {
     return (
         <nav className="fixed top-0 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
             <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-                {/* Logo */}
+
                 <Link 
                     href="/" 
                     className="text-lg font-semibold tracking-tight hover:text-primary transition-colors"
                 >
-                    MyApp
+                   Gidy
                 </Link>
 
-                {/* Desktop Navigation */}
                 <div className="hidden md:flex items-center gap-6">
                     <NavLinks links={NAV_LINKS} className="flex items-center gap-6" />
                     <UserMenu user={user} onLogout={handleLogout} />
                 </div>
 
-                {/* Mobile Navigation */}
                 <div className="md:hidden flex items-center gap-2">
-                    {/* Mobile User Menu */}
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button
@@ -253,7 +258,6 @@ export default function Navbar() {
                         </DropdownMenuContent>
                     </DropdownMenu>
 
-                    {/* Mobile Menu Sheet */}
                     <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                         <SheetTrigger asChild>
                             <Button variant="ghost" size="icon" aria-label="Open menu">

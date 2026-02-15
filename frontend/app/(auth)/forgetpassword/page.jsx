@@ -12,7 +12,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-// ✅ API logic lives here — not in the component
 import { resetPassword } from "@/lib/auth_api";
 
 const schema = z
@@ -23,7 +22,7 @@ const schema = z
   })
   .refine((d) => d.newPassword === d.confirmPassword, {
     message: "Passwords do not match",
-    path: ["confirmPassword"], // ✅ attaches the error to the confirmPassword field
+    path: ["confirmPassword"], 
   });
 
 export default function ForgotPasswordPage() {
@@ -116,7 +115,6 @@ export default function ForgotPasswordPage() {
                   )}
                 </span>
               </div>
-              {/* ✅ Shows "Passwords do not match" under the confirm field */}
               {form.formState.errors.confirmPassword && (
                 <p className="mt-1 text-xs text-red-500">
                   {form.formState.errors.confirmPassword.message}
@@ -124,7 +122,6 @@ export default function ForgotPasswordPage() {
               )}
             </div>
 
-            {/* ✅ Surfaces real server errors (e.g. "Email not found") */}
             {serverError && (
               <p className="text-center text-sm text-red-500">{serverError}</p>
             )}

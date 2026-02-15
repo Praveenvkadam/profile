@@ -65,7 +65,18 @@ export default function ProfilePage() {
   const fullName     = [profile.first_name, profile.last_name].filter(Boolean).join(" ") || "No Name"
   const initials     = [profile.first_name?.[0], profile.last_name?.[0]].filter(Boolean).join("").toUpperCase() || "?"
   const education    = Array.isArray(profile.education) && profile.education.length > 0 ? profile.education[0] : null
-  const skills       = Array.isArray(profile.skills) ? profile.skills : []
+  
+  let skills = []
+  if (Array.isArray(profile.skills)) {
+    skills = profile.skills
+  } else if (typeof profile.skills === 'string') {
+    try {
+      skills = JSON.parse(profile.skills)
+    } catch {
+      skills = []
+    }
+  }
+  
   const certificates = Array.isArray(profile.certificates) ? profile.certificates : []
 
   const completionFields = [
@@ -80,8 +91,7 @@ export default function ProfilePage() {
   const IconBtn = ({ onClick }) => (
     <button
       onClick={onClick}
-      className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition shrink-0"
-    >
+      className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition shrink-0">
       <Plus className="w-4 h-4 text-gray-500" />
     </button>
   )
@@ -89,102 +99,94 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-gray-100 py-6 px-4 pb-24">
       <div className="max-w-3xl mx-auto space-y-4">
-
-        {/* ── Header Card ── */}
         <Card className="shadow-sm border-0 overflow-hidden">
-          <CardContent className="px-6 pb-6 pt-6">
+          <CardContent className="px-6 py-2.5"> 
+            <div className="flex items-start justify-between gap-4 mb-1.5">
+              <div className="flex items-start gap-3">
+                <Avatar className="w-14 h-14 border-2 border-white shadow-md ring-1 ring-gray-100 shrink-0">
+                  {profile.profile_photo ? (
+                    <AvatarImage
+                      src={`${process.env.NEXT_PUBLIC_API_URL}/${profile.profile_photo}`}
+                      alt={fullName}
+                    />
+                  ) : null}
+                  <AvatarFallback className="bg-gradient-to-br from-yellow-400 to-orange-400 text-white text-lg font-bold">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
 
-            <div className="flex items-start justify-between mb-5">
-              {/* ── Large Avatar ── */}
-              <Avatar className="w-28 h-28 border-4 border-white shadow-md ring-1 ring-gray-100">
-                {profile.profile_photo ? (
-                  <AvatarImage
-                    src={`${process.env.NEXT_PUBLIC_API_URL}/${profile.profile_photo}`}
-                    alt={fullName}
-                  />
-                ) : null}
-                <AvatarFallback className="bg-gradient-to-br from-yellow-400 to-orange-400 text-white text-4xl font-bold">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-lg font-bold text-gray-900 mb-0">{fullName}</h1>
+                  <Badge variant="secondary" className="text-xs font-normal px-2 py-0.5 mb-0.5">
+                    {education?.experienceLevel
+                      ? `${education.experienceLevel.charAt(0).toUpperCase() + education.experienceLevel.slice(1)} / `
+                      : "Fresher / "}
+                    {education?.degree || "Graduate"}
+                  </Badge>
+                  {profile.address && (
+                    <p className="text-xs text-gray-500 flex items-center gap-1">
+                      <MapPin className="w-3 h-3" />
+                      {profile.address}
+                    </p>
+                  )}
+                </div>
+              </div>
 
-              {/* Edit button — top right */}
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-1.5 text-xs h-8"
+              <button 
                 onClick={() => router.push("/profile_form")}
-              >
-                <Pencil className="w-3 h-3" />
-                Edit Profile
-              </Button>
+                className="text-gray-400 hover:text-gray-600 transition shrink-0">
+                <MoreVertical className="w-5 h-5" />
+              </button>
             </div>
 
-            {/* Name + badge */}
-            <div className="flex flex-wrap items-center gap-2 mb-1">
-              <h1 className="text-xl font-bold text-gray-900">{fullName}</h1>
-              <Badge variant="secondary" className="text-xs font-normal px-2 py-0.5">
-                {education?.experienceLevel
-                  ? `${education.experienceLevel.charAt(0).toUpperCase() + education.experienceLevel.slice(1)} / `
-                  : "Fresher / "}
-                {education?.degree || "Graduate"}
-              </Badge>
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mb-1.5">
+              {profile.email && (
+                <a href={`mailto:${profile.email}`} className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-sm">
+                  <Mail className="w-4 h-4" />
+                  {profile.email}
+                </a>
+              )}
+              {profile.resume_file && (
+                <a href={`${process.env.NEXT_PUBLIC_API_URL}/${profile.resume_file}`} target="_blank" rel="noreferrer">
+                  <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 px-3">
+                    <Download className="w-3.5 h-3.5" />
+                    Download Resume
+                  </Button>
+                </a>
+              )}
             </div>
 
-            {profile.address && (
-              <p className="text-xs text-gray-500 flex items-center gap-1 mb-4">
-                <MapPin className="w-3 h-3" />
-                {profile.address}
-              </p>
-            )}
-
-            <div className="flex flex-wrap items-end justify-between gap-4">
-              <div className="flex flex-col gap-2">
-                {profile.email && (
-                  <a href={`mailto:${profile.email}`} className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-sm">
-                    <Mail className="w-4 h-4" />
-                    {profile.email}
-                  </a>
-                )}
-                {profile.resume_file && (
-                  <a href={`${process.env.NEXT_PUBLIC_API_URL}/${profile.resume_file}`} target="_blank" rel="noreferrer">
-                    <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 px-3 w-fit">
-                      <Download className="w-3.5 h-3.5" />
-                      Download Resume
-                    </Button>
-                  </a>
-                )}
-              </div>
-
-              {/* League / Rank / Points */}
-              <div className="flex items-center gap-5">
+            <div className="flex items-end justify-end gap-8 ml-auto">
+              <div className="text-center">
+                <p className="text-sm text-gray-400 mb-0.5">League</p>
                 <div className="flex items-center gap-2">
-                  <div className="w-9 h-9 rounded-full bg-orange-50 border border-orange-100 flex items-center justify-center text-lg shadow-sm">🥉</div>
-                  <div>
-                    <p className="text-[10px] text-gray-400 leading-none">League</p>
-                    <p className="text-sm font-semibold text-gray-800">Bronze</p>
+                  <div className="w-9 h-9 rounded-full bg-orange-50 border border-orange-100 flex items-center justify-center text-lg shadow-sm">
+                    🥉
                   </div>
+                  <p className="text-base font-semibold text-gray-800">Bronze</p>
                 </div>
-                <div>
-                  <p className="text-[10px] text-gray-400 leading-none">Rank</p>
-                  <p className="text-sm font-semibold text-gray-800">29</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-gray-400 leading-none">Points</p>
-                  <p className="text-sm font-semibold text-gray-800">50</p>
-                </div>
+              </div>
+
+              <div className="text-center">
+                <p className="text-sm text-gray-400 mb-0.5">Rank</p>
+                <p className="text-2xl font-bold text-gray-800">29</p>
+              </div>
+
+              <div className="text-center">
+                <p className="text-sm text-gray-400 mb-0.5">Points</p>
+                <p className="text-2xl font-bold text-gray-800">50</p>
               </div>
             </div>
 
-            <div className="mt-4 text-right">
+            <div className="mt-1 text-right">
               <a href="#" className="inline-flex items-center gap-0.5 text-yellow-600 hover:text-yellow-700 text-xs font-medium">
                 View My Rewards <ChevronRight className="w-3.5 h-3.5" />
               </a>
             </div>
+
           </CardContent>
         </Card>
 
-        {/* ── Career Goals ── */}
         <Card className="shadow-sm border-0">
           <CardContent className="p-5 flex items-start justify-between gap-4">
             <div className="flex-1">
@@ -204,13 +206,8 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
-        {/* ── Two Column ── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-          {/* Left */}
           <div className="space-y-4">
-
-            {/* Level Up */}
             <Card className="shadow-sm border-0">
               <CardContent className="p-5">
                 <div className="flex items-start gap-2 mb-3">
@@ -251,7 +248,6 @@ export default function ProfilePage() {
               </CardContent>
             </Card>
 
-            {/* Skills */}
             <Card className="shadow-sm border-0">
               <CardContent className="p-5">
                 <div className="flex items-center justify-between mb-3">
@@ -276,10 +272,7 @@ export default function ProfilePage() {
             </Card>
           </div>
 
-          {/* Right */}
           <div className="space-y-4">
-
-            {/* Experience */}
             <Card className="shadow-sm border-0">
               <CardContent className="p-5">
                 <div className="flex items-center justify-between mb-3">
@@ -290,8 +283,7 @@ export default function ProfilePage() {
               </CardContent>
             </Card>
 
-            {/* Education */}
-            <Card className="shadow-sm border-0">
+<Card className="shadow-sm border-0">
               <CardContent className="p-5">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-semibold text-gray-900">Education</h3>
@@ -329,7 +321,6 @@ export default function ProfilePage() {
               </CardContent>
             </Card>
 
-            {/* Certification */}
             <Card className="shadow-sm border-0">
               <CardContent className="p-5">
                 <div className="flex items-center justify-between mb-3">
@@ -372,7 +363,6 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* ── Fixed bottom-left: Update Your Profile button ── */}
       <div className="fixed bottom-6 left-6 z-50">
         <Button
           onClick={() => router.push("/profile_form")}

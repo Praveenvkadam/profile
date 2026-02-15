@@ -1,10 +1,5 @@
 const API = process.env.NEXT_PUBLIC_API_URL;
 
-/**
- * Registers a new user.
- * @param {{ email: string, password: string }} credentials
- * @returns {Promise<{ success: boolean, data?: any, error?: string }>}
- */
 export async function registerUser({ email, password }) {
   try {
     const res = await fetch(`${API}/api/auth/register`, {
@@ -13,7 +8,6 @@ export async function registerUser({ email, password }) {
       body: JSON.stringify({ email, password }),
     });
 
-    // Try to parse JSON regardless of status so we can read the error message
     let data;
     try {
       data = await res.json();
@@ -22,7 +16,6 @@ export async function registerUser({ email, password }) {
     }
 
     if (!res.ok) {
-      // Use server-provided message if available, otherwise fall back to status text
       const message =
         data?.message || data?.error || res.statusText || "Registration failed";
       return { success: false, error: message };
@@ -30,7 +23,6 @@ export async function registerUser({ email, password }) {
 
     return { success: true, data };
   } catch (err) {
-    // Network-level error (no internet, CORS, wrong URL, etc.)
     return {
       success: false,
       error: err?.message || "Network error. Please try again.",
@@ -38,11 +30,6 @@ export async function registerUser({ email, password }) {
   }
 }
 
-/**
- * Resets a user's password by email.
- * @param {{ email: string, newPassword: string, confirmPassword: string }} payload
- * @returns {Promise<{ success: boolean, data?: any, error?: string }>}
- */
 export async function resetPassword({ email, newPassword, confirmPassword }) {
   try {
     const res = await fetch(`${API}/api/auth/reset-by-email`, {
@@ -73,11 +60,6 @@ export async function resetPassword({ email, newPassword, confirmPassword }) {
   }
 }
 
-/**
- * Logs in an existing user.
- * @param {{ email: string, password: string }} credentials
- * @returns {Promise<{ success: boolean, data?: any, error?: string }>}
- */
 export async function loginUser({ email, password }) {
   try {
     const res = await fetch(`${API}/api/auth/login`, {

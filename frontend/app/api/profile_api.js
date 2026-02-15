@@ -1,9 +1,5 @@
 const API = process.env.NEXT_PUBLIC_API_URL;
 
-/**
- * Helper function to get auth token from localStorage
- * @returns {string | null}
- */
 function getAuthToken() {
   if (typeof window !== 'undefined') {
     return localStorage.getItem('token');
@@ -11,10 +7,6 @@ function getAuthToken() {
   return null;
 }
 
-/**
- * Helper function to create headers with auth token
- * @returns {HeadersInit}
- */
 function getAuthHeaders() {
   const token = getAuthToken();
   const headers = {
@@ -23,10 +15,6 @@ function getAuthHeaders() {
   return headers;
 }
 
-/**
- * Gets the user's profile data.
- * @returns {Promise<{ success: boolean, data?: any, error?: string }>}
- */
 export async function getProfile() {
   try {
     const token = getAuthToken();
@@ -56,8 +44,6 @@ export async function getProfile() {
       return { success: false, error: message };
     }
 
-    // Backend returns data directly, not wrapped in {success, data}
-    // So we wrap it here for consistency
     return { success: true, data: data };
   } catch (err) {
     console.error('Profile fetch error:', err);
@@ -68,30 +54,39 @@ export async function getProfile() {
   }
 }
 
-/**
- * Updates the user's profile.
- * @param {Object} formData - Form data from react-hook-form
- * @returns {Promise<{ success: boolean, data?: any, error?: string }>}
- */
 export async function updateProfile(formData) {
   try {
+    console.log('=== UPDATE PROFILE START ===');
+    console.log('Form data received:', formData);
+    
     const payload = new FormData();
 
-    // Basic info
-    payload.append("firstName", formData.firstName || "");
-    payload.append("lastName", formData.lastName || "");
-    payload.append("phone", formData.phone || "");
-    payload.append("address", formData.address || "");
-    payload.append("bio", formData.bio || "");
+    if (!formData.firstName || !formData.lastName || !formData.email) {
+      return { 
+        success: false, 
+        error: "First name, last name, and email are required" 
+      };
+    }
 
-    // Skills - convert comma-separated string to array
+    payload.append("firstName", formData.firstName.trim());
+    payload.append("lastName", formData.lastName.trim());
+    payload.append("phone", (formData.phone || "").trim());
+    payload.append("address", (formData.address || "").trim());
+    payload.append("bio", (formData.bio || "").trim());
+
     const skillsArray = formData.skills
       ? formData.skills.split(",").map((s) => s.trim()).filter(Boolean)
       : [];
     payload.append("skills", JSON.stringify(skillsArray));
+    console.log('Skills array:', skillsArray);
 
-    // Education - single object in array
-    const education = [
+    const hasEducation = 
+      formData.educationLevel || 
+      formData.university || 
+      formData.courseName || 
+      formData.fieldOfStudy;
+
+    const education = hasEducation ? [
       {
         degree: formData.educationLevel || null,
         institution: formData.university || null,
@@ -99,68 +94,116 @@ export async function updateProfile(formData) {
         fieldOfStudy: formData.fieldOfStudy || null,
         startDate: formData.startDate || null,
         endDate: formData.currentlyStudying ? null : formData.endDate || null,
-        currentlyStudying: formData.currentlyStudying || false,
+        currentlyStudying: !!formData.currentlyStudying,
         experienceLevel: formData.experienceLevel || null,
       },
-    ];
+    ] : [];
     payload.append("education", JSON.stringify(education));
-
-    // Certificates - filter out empty entries
+    console.log('Education data:', education);
     const certificates = (formData.certificates || [])
-      .filter((c) => c.certificateName?.trim())
+      .filter((c) => {
+        return c.certificateName && c.certificateName.trim()
+      })
       .map((c) => ({
-        certificateName: c.certificateName || null,
+        certificateName: c.certificateName.trim(),
         startDate: c.certificateStart || null,
         endDate: c.certificateEnd || null,
-        description: c.certificateDescription || null,
+        description: (c.certificateDescription || "").trim() || null,
       }));
     payload.append("certificates", JSON.stringify(certificates));
+    console.log('Certificates data:', certificates);
 
     // Files - only append if they exist and are File objects
     if (formData.profilePhoto && formData.profilePhoto instanceof File) {
+      console.log('Adding profile photo:', formData.profilePhoto.name);
       payload.append("profilePhoto", formData.profilePhoto);
+    } else {
+      console.log('No new profile photo to upload');
     }
+    
     if (formData.resume && formData.resume instanceof File) {
+      console.log('Adding resume:', formData.resume.name);
       payload.append("resume", formData.resume);
+    } else {
+      console.log('No new resume to upload');
     }
 
+    console.log('=== FormData Contents ===');
+    for (let [key, value] of payload.entries()) {
+      if (value instanceof File) {
+        console.log(key, ':', `File(${value.name}, ${value.size} bytes)`);
+      } else {
+        console.log(key, ':', value);
+      }
+    }
     const token = getAuthToken();
+    console.log('Sending request to:', `${API}/api/profile`);
+    
     const res = await fetch(`${API}/api/profile`, {
       method: "PUT",
       headers: {
         'Authorization': token ? `Bearer ${token}` : '',
-        // Don't set Content-Type for FormData - browser sets it automatically with boundary
       },
       body: payload,
     });
 
+    console.log('Response status:', res.status);
+    console.log('Response headers:', Object.fromEntries(res.headers.entries()));
+
     let data;
-    try {
-      data = await res.json();
-    } catch {
-      data = {};
+    const contentType = res.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      try {
+        data = await res.json();
+        console.log('Response data:', data);
+      } catch (parseError) {
+        console.error('Failed to parse JSON response:', parseError);
+        const text = await res.text();
+        console.log('Response text:', text);
+        data = { error: text };
+      }
+    } else {
+      const text = await res.text();
+      console.log('Non-JSON response:', text);
+      data = { error: text || 'No response data' };
     }
 
     if (!res.ok) {
-      // Handle specific error cases
       if (res.status === 413) {
         return { success: false, error: "File size too large - please upload smaller files" };
       }
       if (res.status === 422) {
-        return { success: false, error: "Invalid data format - please check your inputs" };
+        const detailedError = data?.message || data?.error || "Invalid data format";
+        console.error('Validation error (422):', detailedError);
+        return { 
+          success: false, 
+          error: `Validation error: ${detailedError}. Please check all required fields.` 
+        };
       }
       if (res.status === 401) {
         return { success: false, error: "Authentication required. Please sign in again." };
       }
+      if (res.status === 400) {
+        const detailedError = data?.message || data?.error || "Bad request";
+        console.error('Bad request (400):', detailedError);
+        return { 
+          success: false, 
+          error: `Request error: ${detailedError}` 
+        };
+      }
       
       const message =
         data?.message || data?.error || res.statusText || "Failed to update profile";
+      console.error('Update failed:', message);
       return { success: false, error: message };
     }
 
+    console.log('=== UPDATE PROFILE SUCCESS ===');
     return { success: true, data };
   } catch (err) {
-    // Network-level error
+    console.error('=== UPDATE PROFILE ERROR ===');
+    console.error('Error:', err);
+    
     if (err.name === 'AbortError') {
       return { success: false, error: "Request timeout - please try again" };
     }
@@ -171,10 +214,6 @@ export async function updateProfile(formData) {
   }
 }
 
-/**
- * Deletes the user's profile.
- * @returns {Promise<{ success: boolean, data?: any, error?: string }>}
- */
 export async function deleteProfile() {
   try {
     const res = await fetch(`${API}/api/profile`, {

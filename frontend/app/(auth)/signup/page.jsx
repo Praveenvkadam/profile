@@ -12,7 +12,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-// ✅ Import from the separate auth API file
 import { registerUser } from "../../api/auth_api";
 
 const schema = z.object({
@@ -40,7 +39,6 @@ export default function SignupPage() {
     setIsLoading(false);
 
     if (!success) {
-      // ✅ Show the actual error message instead of logging {}
       setServerError(error || "Something went wrong. Please try again.");
       return;
     }
@@ -58,7 +56,6 @@ export default function SignupPage() {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <div>
               <Input placeholder="Email" {...form.register("email")} />
-              {/* ✅ Show Zod validation errors inline */}
               {form.formState.errors.email && (
                 <p className="mt-1 text-xs text-red-500">
                   {form.formState.errors.email.message}
@@ -90,8 +87,6 @@ export default function SignupPage() {
                 </p>
               )}
             </div>
-
-            {/* ✅ Server-side error message (e.g. "Email already in use") */}
             {serverError && (
               <p className="text-center text-sm text-red-500">{serverError}</p>
             )}

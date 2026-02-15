@@ -45,7 +45,6 @@ export default function SigninPage() {
 
     console.log('Login response data:', data);
 
-    // ✅ SAVE TOKEN - This was missing!
     if (data?.token) {
       localStorage.setItem("token", data.token);
       console.log('Token saved to localStorage');
@@ -53,9 +52,6 @@ export default function SigninPage() {
       console.warn('No token in login response:', data);
     }
 
-    // ✅ Handle both { user: { email } } and { email } response shapes.
-    // Always inject the typed email as a guaranteed fallback so the
-    // Navbar avatar initial never falls back to "?".
     const userToStore = data?.user ?? data ?? {};
     if (!userToStore.email) {
       userToStore.email = values.email;
