@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-import { resetPassword } from "@/lib/auth_api";
+import { resetPassword } from "../../api/auth_api";
 
 const schema = z
   .object({
