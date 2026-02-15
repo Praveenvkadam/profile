@@ -20,7 +20,7 @@ export async function getProfile() {
     const token = getAuthToken();
     console.log('Fetching profile with token:', token ? 'Token exists' : 'No token');
     console.log('API URL:', `${API}/api/profile`);
-    
+
     const res = await fetch(`${API}/api/profile`, {
       method: "GET",
       headers: getAuthHeaders(),
@@ -58,13 +58,13 @@ export async function updateProfile(formData) {
   try {
     console.log('=== UPDATE PROFILE START ===');
     console.log('Form data received:', formData);
-    
+
     const payload = new FormData();
 
     if (!formData.firstName || !formData.lastName || !formData.email) {
-      return { 
-        success: false, 
-        error: "First name, last name, and email are required" 
+      return {
+        success: false,
+        error: "First name, last name, and email are required"
       };
     }
 
@@ -81,10 +81,10 @@ export async function updateProfile(formData) {
     payload.append("skills", JSON.stringify(skillsArray));
     console.log('Skills array:', skillsArray);
 
-    const hasEducation = 
-      formData.educationLevel || 
-      formData.university || 
-      formData.courseName || 
+    const hasEducation =
+      formData.educationLevel ||
+      formData.university ||
+      formData.courseName ||
       formData.fieldOfStudy ||
       formData.experienceLevel;
 
@@ -123,7 +123,7 @@ export async function updateProfile(formData) {
     } else {
       console.log('No new profile photo to upload');
     }
-    
+
     if (formData.resume && formData.resume instanceof File) {
       console.log('Adding resume:', formData.resume.name);
       payload.append("resume", formData.resume);
@@ -142,7 +142,7 @@ export async function updateProfile(formData) {
 
     const token = getAuthToken();
     console.log('Sending request to:', `${API}/api/profile`);
-    
+
     const res = await fetch(`${API}/api/profile`, {
       method: "PUT",
       headers: {
@@ -179,9 +179,9 @@ export async function updateProfile(formData) {
       if (res.status === 422) {
         const detailedError = data?.message || data?.error || "Invalid data format";
         console.error('Validation error (422):', detailedError);
-        return { 
-          success: false, 
-          error: `Validation error: ${detailedError}. Please check all required fields.` 
+        return {
+          success: false,
+          error: `Validation error: ${detailedError}. Please check all required fields.`
         };
       }
       if (res.status === 401) {
@@ -189,13 +189,17 @@ export async function updateProfile(formData) {
       }
       if (res.status === 400) {
         const detailedError = data?.message || data?.error || "Bad request";
-        console.error('Bad request (400):', detailedError);
-        return { 
-          success: false, 
-          error: `Request error: ${detailedError}` 
+        const validationErrors = Array.isArray(data?.errors)
+          ? data.errors.map(err => `${err.field}: ${err.message}`).join(", ")
+          : null;
+
+        console.error('Bad request (400):', detailedError, validationErrors);
+        return {
+          success: false,
+          error: validationErrors ? `Validation error: ${validationErrors}` : `Request error: ${detailedError}`
         };
       }
-      
+
       const message =
         data?.message || data?.error || res.statusText || "Failed to update profile";
       console.error('Update failed:', message);
@@ -207,7 +211,7 @@ export async function updateProfile(formData) {
   } catch (err) {
     console.error('=== UPDATE PROFILE ERROR ===');
     console.error('Error:', err);
-    
+
     if (err.name === 'AbortError') {
       return { success: false, error: "Request timeout - please try again" };
     }
