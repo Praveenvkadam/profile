@@ -104,16 +104,16 @@ class ErrorBoundary extends Component {
 const FileUpload = ({ label, accept, fileName, onFileChange, onClear, fileRef, description, disabled }) => (
   <div className="space-y-2">
     <Label>{label}</Label>
-    <input 
-      type="file" 
-      accept={accept} 
-      className="hidden" 
-      ref={fileRef} 
-      onChange={onFileChange} 
-      disabled={disabled} 
-      aria-label={label} 
+    <input
+      type="file"
+      accept={accept}
+      className="hidden"
+      ref={fileRef}
+      onChange={onFileChange}
+      disabled={disabled}
+      aria-label={label}
     />
-    
+
     {!fileName ? (
       <div
         onClick={() => !disabled && fileRef.current?.click()}
@@ -121,9 +121,8 @@ const FileUpload = ({ label, accept, fileName, onFileChange, onClear, fileRef, d
         tabIndex={0}
         role="button"
         aria-label={`Upload ${label}`}
-        className={`border-2 border-dashed rounded-lg p-8 text-center transition cursor-pointer ${
-          disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-muted/50 hover:border-primary/50"
-        }`}
+        className={`border-2 border-dashed rounded-lg p-8 text-center transition cursor-pointer ${disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-muted/50 hover:border-primary/50"
+          }`}
       >
         <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
         <div className="text-sm text-muted-foreground">Click to upload or drag and drop</div>
@@ -202,7 +201,7 @@ function RegistrationFormInner() {
   const [successOpen, setSuccessOpen] = useState(false)
   const [uploadingFile, setUploadingFile] = useState(false)
   const [aiGenerating, setAiGenerating] = useState(false)
-  
+
   const [hasExistingPhoto, setHasExistingPhoto] = useState(false)
   const [hasExistingResume, setHasExistingResume] = useState(false)
 
@@ -222,10 +221,10 @@ function RegistrationFormInner() {
     const fetchProfile = async () => {
       try {
         const result = await getProfile()
-        if (!result.success) { 
+        if (!result.success) {
           console.log("Profile fetch failed:", result)
           setFetching(false)
-          return 
+          return
         }
         const data = result.data
         const edu = Array.isArray(data.education) && data.education.length > 0 ? data.education[0] : null
@@ -260,7 +259,7 @@ function RegistrationFormInner() {
           currentlyStudying: edu?.currentlyStudying || false,
           experienceLevel: edu?.experienceLevel || "",
           certificates: [],
-          profilePhoto: null, 
+          profilePhoto: null,
           resume: null,
         }
 
@@ -285,7 +284,7 @@ function RegistrationFormInner() {
           setResumeName(filename)
           setHasExistingResume(true)
         }
-        
+
         sessionStorage.removeItem(formDraftKey)
 
       } catch (err) {
@@ -344,10 +343,10 @@ function RegistrationFormInner() {
   const handlePhotoChange = useCallback((e) => {
     const file = e.target.files?.[0]
     if (!file) return
-    
+
     setUploadingFile(true)
     setPhotoError("")
-    
+
     const v = validateFile(file, MAX_FILE_SIZE, ACCEPTED_IMAGE_TYPES)
     if (!v.valid) {
       setPhotoError(v.error)
@@ -359,7 +358,7 @@ function RegistrationFormInner() {
       setPhotoName(file.name)
       setValue("profilePhoto", file, { shouldValidate: true })
       setPhotoError("")
-      setHasExistingPhoto(false) 
+      setHasExistingPhoto(false)
     }
     setUploadingFile(false)
   }, [setValue])
@@ -367,10 +366,10 @@ function RegistrationFormInner() {
   const handleResumeChange = useCallback((e) => {
     const file = e.target.files?.[0]
     if (!file) return
-    
+
     setUploadingFile(true)
     setResumeError("")
-    
+
     const v = validateFile(file, MAX_FILE_SIZE, ACCEPTED_DOCUMENT_TYPES)
     if (!v.valid) {
       setResumeError(v.error)
@@ -382,7 +381,7 @@ function RegistrationFormInner() {
       setResumeName(file.name)
       setValue("resume", file, { shouldValidate: true })
       setResumeError("")
-      setHasExistingResume(false) 
+      setHasExistingResume(false)
     }
     setUploadingFile(false)
   }, [setValue])
@@ -406,24 +405,24 @@ function RegistrationFormInner() {
   const onSubmit = async (data) => {
     setLoading(true)
     setError(null)
-    
+
     try {
       const submitData = {
         ...data,
         profilePhoto: hasExistingPhoto && !data.profilePhoto ? null : data.profilePhoto,
         resume: hasExistingResume && !data.resume ? null : data.resume,
       }
-      
+
       const result = await updateProfile(submitData)
-      
+
       if (!result.success) {
         setError(result.error || "Failed to update profile.")
         return
       }
-      
+
       sessionStorage.removeItem(formDraftKey)
       setSuccessOpen(true)
-      
+
       if (data.profilePhoto instanceof File) {
         setHasExistingPhoto(true)
       }
@@ -434,7 +433,7 @@ function RegistrationFormInner() {
       setTimeout(() => {
         router.push("/")
       }, 2000)
-      
+
     } catch (err) {
       console.error("Submit error:", err)
       setError(err?.message || "Something went wrong.")
@@ -475,9 +474,9 @@ function RegistrationFormInner() {
               <span className="text-xs">Redirecting to home in 2 seconds...</span>
             </DialogDescription>
           </DialogHeader>
-          <Button 
-            className="mt-4 w-full" 
-            onClick={() => router.push("/home")}>
+          <Button
+            className="mt-4 w-full"
+            onClick={() => router.push("/")}>
             Go to Home Now
           </Button>
         </DialogContent>
@@ -493,9 +492,9 @@ function RegistrationFormInner() {
           <Alert variant="destructive">
             <AlertDescription className="flex items-center justify-between">
               <span className="text-sm">{error}</span>
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => setError(null)}
                 className="h-auto p-1"
               >
@@ -511,14 +510,14 @@ function RegistrationFormInner() {
           <Card>
             <CardContent className="p-6 space-y-6">
 
-              <FileUpload 
-                label="Profile Photo" 
-                accept="image/*" 
+              <FileUpload
+                label="Profile Photo"
+                accept="image/*"
                 fileName={photoName}
                 onFileChange={handlePhotoChange}
                 onClear={clearPhoto}
                 fileRef={photoRef}
-                description="SVG, PNG, JPG or GIF (max. 10MB)" 
+                description="SVG, PNG, JPG or GIF (max. 10MB)"
                 disabled={loading || uploadingFile} />
               {photoError && <p className="text-sm text-red-500">{photoError}</p>}
 
@@ -678,15 +677,15 @@ function RegistrationFormInner() {
                 <Input id="skills" placeholder="JavaScript, React, Node.js (comma-separated)" {...register("skills")} disabled={loading} />
                 <p className="text-xs text-muted-foreground">Separate each skill with a comma</p>
               </div>
-              <FileUpload 
-                label="Resume Upload" 
-                accept=".pdf,.doc,.docx" 
+              <FileUpload
+                label="Resume Upload"
+                accept=".pdf,.doc,.docx"
                 fileName={resumeName}
                 onFileChange={handleResumeChange}
                 onClear={clearResume}
                 fileRef={resumeRef}
-                description="PDF, DOCX up to 10MB" 
-                disabled={loading || uploadingFile} 
+                description="PDF, DOCX up to 10MB"
+                disabled={loading || uploadingFile}
               />
               {resumeError && <p className="text-sm text-red-500">{resumeError}</p>}
             </CardContent>
