@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { resetPassword } from "../../api/auth_api";
 
+//.
 const schema = z
   .object({
     email: z.string().min(1, "Email is required").email("Invalid email"),
