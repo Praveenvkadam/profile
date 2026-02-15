@@ -77,10 +77,10 @@ const initDB = async () => {
       WHERE skills IS NOT NULL;
     `);
 
-    console.log("✅ Database initialized");
+    console.log("Database initialized");
 
   } catch (err) {
-    console.error("❌ Database initialization failed:", err);
+    console.error("Database initialization failed:", err);
     process.exit(1);
   }
 };
