@@ -30,7 +30,7 @@ export default function SigninPage() {
 
   async function onSubmit(values) {
     try {
-      const res = await fetch(`${API}/login`, {
+      const res = await fetch(`${API}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),

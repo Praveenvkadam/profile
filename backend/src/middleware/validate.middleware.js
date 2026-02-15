@@ -1,3 +1,4 @@
+// validate.middleware.js — keep this as original, don't touch it
 module.exports = (schema) => (req, res, next) => {
   const result = schema.safeParse(req.body);
 
