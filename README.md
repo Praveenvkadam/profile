@@ -1,6 +1,6 @@
 Profile Management System
 
-A full-stack authentication and profile management application built with a modular and scalable architecture.
+A full-stack authentication and profile management application built with Next.js, Node.js, and PostgreSQL.
 
 Tech Stack
 Backend
@@ -9,11 +9,13 @@ Node.js
 
 Express.js
 
-MongoDB
+PostgreSQL
+
+pg (node-postgres)
 
 JWT Authentication
 
-Middleware-based architecture
+Middleware architecture
 
 Frontend
 
@@ -29,15 +31,15 @@ User registration and login
 
 JWT-based authentication
 
-Protected routes
+Protected API routes
 
 Profile creation and update
 
-File upload handling
+PostgreSQL relational database
 
 Input validation (server + client)
 
-Clean modular project structure
+Modular and scalable structure
 
 Project Structure
 profile-main/
@@ -49,8 +51,8 @@ profile-main/
 │   │   ├── controllers/
 │   │   ├── middleware/
 │   │   ├── routes/
-│   │   ├── utils/
-│   │   └── validators/
+│   │   ├── db/
+│   │   └── utils/
 │
 └── frontend/
     ├── app/
@@ -65,24 +67,51 @@ Backend Setup
 Install Dependencies
 cd backend
 npm install
-Environment Variables
 
-Create a .env file inside the backend/ directory:
+Make sure you have PostgreSQL installed locally or running via Docker.
+
+PostgreSQL Setup
+
+Create a database:
+
+CREATE DATABASE profile_db;
+
+Update your .env file inside backend/:
 
 PORT=5000
-MONGO_URI=your_mongodb_connection_string
+DATABASE_URL=postgresql://postgres:yourpassword@localhost:5432/profile_db
 JWT_SECRET=your_super_secret_key
 
-If these values are wrong, authentication will fail.
+If your connection string is wrong, nothing works. Fix that first.
+
+Example Database Schema
+
+You need at minimum a users table:
+
+CREATE TABLE users (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100),
+  email VARCHAR(100) UNIQUE NOT NULL,
+  password TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+And optionally a profiles table:
+
+CREATE TABLE profiles (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  bio TEXT,
+  avatar TEXT,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+If your schema doesn't match your queries, you will get runtime errors. Keep it aligned.
 
 Run Backend
 npm run dev
 
-or
-
-node src/server.js
-
-Backend runs on:
+Backend runs at:
 
 http://localhost:5000
 Frontend Setup
@@ -91,38 +120,40 @@ cd frontend
 npm install
 Environment Variables
 
-Create a .env.local file inside frontend/:
+Create .env.local inside frontend/:
 
 NEXT_PUBLIC_API_URL=http://localhost:5000
 
-If this URL does not match the backend URL, API requests will fail.
+If this URL is wrong, API calls fail silently.
 
 Run Frontend
 npm run dev
 
-Frontend runs on:
+Frontend runs at:
 
 http://localhost:3000
 Authentication Flow
 
-User registers or logs in.
+User registers.
 
-Backend validates input.
+Password is hashed (bcrypt recommended).
 
-JWT token is generated.
+User stored in PostgreSQL.
 
-Token is returned to the client.
+JWT token generated.
 
-Client includes token in the Authorization header.
+Client stores token.
 
-Middleware verifies token for protected routes.
+Protected routes verify token via middleware.
+
+If you are not hashing passwords, your system is insecure. Fix that immediately.
 
 API Endpoints
-Auth Routes
+Auth
 Method	Endpoint	Description
 POST	/api/auth/signup	Register user
 POST	/api/auth/signin	Login user
-Profile Routes
+Profile
 Method	Endpoint	Description
-GET	/api/profile	Get profile
+GET	/api/profile	Get user profile
 POST	/api/profile	Create or update profile
